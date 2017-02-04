@@ -1,6 +1,17 @@
-var	YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/search';
+var state = {
+	YOUTUBE_URL: 'https://www.googleapis.com/youtube/v3/search',
+	nextPageToken: '',
+	prevPageToken: '',
+	query : {
+		key: 'AIzaSyBN3XdPfXSAXSKd823uZZVWyEV2ROFivw0',
+		q: '',
+		part: 'snippet',
+		r: 'json',
+		pageToken: ''
+	}
+}
 
-function getDataFromAPI(userInput, callback) {
+function getDataFromAPI(callback) {
 	/*var settings = {
 		url: YOUTUBE_URL,
 		data: {
@@ -15,13 +26,7 @@ function getDataFromAPI(userInput, callback) {
 	}
 	$.ajax(settings);*/
 
-	var query = {
-		key: 'AIzaSyBN3XdPfXSAXSKd823uZZVWyEV2ROFivw0',
-		q: userInput,
-		part: 'snippet',
-		r: 'json',
-	}
-	$.getJSON(YOUTUBE_URL, query, callback);
+	$.getJSON(state.YOUTUBE_URL, state.query, callback);
 }
 
 function displaySearchData(data){
@@ -32,30 +37,49 @@ function displaySearchData(data){
      	'<div class="js-render-result">' +
      		'<img src="' + item.snippet.thumbnails.medium.url + '">' + 
      		'<h2>' + item.snippet.title + '</h2>' +
-     		'<h3>Channel: ' + item.snippet.channelTitle + '</h3>' +
+     		'<h3>Channel: <a target="_blank" href="https://www.youtube.com/channel/' +
+     		item.snippet.channelId + '">' + item.snippet.channelTitle + '</a></h3>' +
      	'</div>';
     	});
   	}
   	else {
     	resultElement += '<p>No results</p>';
   	}
+
   	$('.js-div-result').html(resultElement);
+
+  	//handle next button
+  	if (data.nextPageToken){
+  		$('.button-next').removeClass('hidden');
+  		state.nextPageToken = data.nextPageToken;
+  	}
+  	else
+  		$('.button-next').addClass('hidden');
+
+  	//handel prev button
+  	if (data.prevPageToken){
+  		$('.button-prev').removeClass('hidden');
+  		state.prevPageToken = data.prevPageToken;
+  	}
+  	else
+  		$('.button-prev').addClass('hidden');
 }
 
-
-$('.js-search-form').submit(function(event){
-	event.preventDefault();
-	var userInput = $(this).find('.js-user-input').val();
-	getDataFromAPI(userInput, displaySearchData);
+//Navigate to next page
+$('.button-next').on('click', function(event){
+	state.query.pageToken = state.nextPageToken;
+	getDataFromAPI(displaySearchData);
 })
 
-/*
-{"Search":[{
-  "Title":"Star Wars: Episode IV - A New Hope",
-  "Year":"1977",
-  "imdbID":"tt0076759",
-  "Type":"movie"},
-  ...
-  ]
-}
-*/
+//Navigate to prev page
+$('.button-prev').on('click', function(event){
+	state.query.pageToken = state.prevPageToken;
+	getDataFromAPI(displaySearchData);
+})
+
+//Start search
+$('.js-search-form').submit(function(event){
+	event.preventDefault();
+	state.query.q = $(this).find('.js-user-input').val();
+	getDataFromAPI(displaySearchData);
+})
